@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>GhostLink Chat</title>
@@ -17,33 +17,48 @@ button { cursor: pointer; }
 <button onclick="sendMessage()">Send</button>
 
 <script>
-const SERVER_URL = "https://web-production-ea9fc.up.railway.app";
+var SERVER_URL = "https://web-production-ea9fc.up.railway.app";
 
-async function loadMessages() {
-  try {
-    let res = await fetch(SERVER_URL + "/receive");
-    let data = await res.json();
-    let chat = document.getElementById("chat");
-    chat.innerHTML = data.map(m => `<b>${m.sender}:</b> ${m.text} <i>${m.time}</i>`).join("<br>");
-    chat.scrollTop = chat.scrollHeight;
-  } catch(e) { console.log("Error loading messages", e); }
+function loadMessages() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", SERVER_URL + "/receive", true);
+    xhr.onreadystatechange = function() {
+        if(xhr.readyState === 4 && xhr.status === 200) {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                var chatDiv = document.getElementById("chat");
+                var html = "";
+                for(var i=0; i<data.length; i++){
+                    html += "<b>" + data[i].sender + ":</b> " + data[i].text + " <i>" + data[i].time + "</i><br>";
+                }
+                chatDiv.innerHTML = html;
+                chatDiv.scrollTop = chatDiv.scrollHeight;
+            } catch(e){ console.log("Error parsing messages", e); }
+        }
+    };
+    xhr.send();
 }
 
-async function sendMessage() {
-  let msg = document.getElementById("message").value;
-  if(!msg) return;
-  try {
-    await fetch(SERVER_URL + "/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sender: "Ghost", text: msg })
-    });
-    document.getElementById("message").value = "";
-    loadMessages();
-  } catch(e) { console.log("Error sending message", e); }
+function sendMessage() {
+    var msgInput = document.getElementById("message");
+    var msg = msgInput.value;
+    if(!msg) return;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", SERVER_URL + "/send", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.onreadystatechange = function() {
+        if(xhr.readyState === 4 && xhr.status === 200){
+            msgInput.value = "";
+            loadMessages();
+        }
+    };
+    var payload = JSON.stringify({ sender: "Ghost", text: msg });
+    xhr.send(payload);
 }
 
-setInterval(loadMessages, 2000); // auto-refresh every 2 sec
+// Auto-refresh every 3 seconds
+setInterval(loadMessages, 3000);
 window.onload = loadMessages;
 </script>
 </body>
