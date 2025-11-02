@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GhostLink Chat</title>
+<style>
+body { background: black; color: #00ff00; font-family: monospace; }
+#chat { border: 1px solid #00ff00; padding: 10px; height: 200px; overflow-y: scroll; }
+input, button { background: black; color: #00ff00; border: 1px solid #00ff00; padding: 5px; }
+button { cursor: pointer; }
+</style>
+</head>
+<body>
+<h2>GhostLink Chat</h2>
+<div id="chat"></div>
+<input type="text" id="message" placeholder="Type your message">
+<button onclick="sendMessage()">Send</button>
+
+<script>
+const SERVER_URL = "https://web-production-ea9fc.up.railway.app";
+
+async function loadMessages() {
+  try {
+    let res = await fetch(SERVER_URL + "/receive");
+    let data = await res.json();
+    let chat = document.getElementById("chat");
+    chat.innerHTML = data.map(m => `<b>${m.sender}:</b> ${m.text} <i>${m.time}</i>`).join("<br>");
+    chat.scrollTop = chat.scrollHeight;
+  } catch(e) { console.log("Error loading messages", e); }
+}
+
+async function sendMessage() {
+  let msg = document.getElementById("message").value;
+  if(!msg) return;
+  try {
+    await fetch(SERVER_URL + "/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sender: "Ghost", text: msg })
+    });
+    document.getElementById("message").value = "";
+    loadMessages();
+  } catch(e) { console.log("Error sending message", e); }
+}
+
+setInterval(loadMessages, 2000); // auto-refresh every 2 sec
+window.onload = loadMessages;
+</script>
+</body>
+</html>
